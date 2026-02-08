@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Webhook Dashboard</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Simple Sort Script -->
+    <script>
+        function sortTable(tableId, colIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.rows);
+            const asc = table.dataset.sort !== "asc";
+
+            rows.sort((a, b) => {
+                let x = a.cells[colIndex].innerText;
+                let y = b.cells[colIndex].innerText;
+
+                let nx = parseFloat(x);
+                let ny = parseFloat(y);
+
+                if (!isNaN(nx) && !isNaN(ny)) {
+                    return asc ? nx - ny : ny - nx;
+                }
+                return asc ? x.localeCompare(y) : y.localeCompare(x);
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+            table.dataset.sort = asc ? "asc" : "desc";
+        }
+
+        function showTable(id) {
+            document.getElementById("srTable").style.display = "none";
+            document.getElementById("rawTable").style.display = "none";
+            document.getElementById(id).style.display = "block";
+        }
+    </script>
+</head>
+
+<body class="bg-light">
+<div class="container mt-4">
+
+    <h2 class="mb-4">📊 Webhook Dashboard</h2>
+
+    <!-- Buttons -->
+    <div class="mb-3">
+        <button class="btn btn-success me-2" onclick="showTable('srTable')">
+            Support & Resistance
+        </button>
+        <button class="btn btn-secondary" onclick="showTable('rawTable')">
+            Raw Alerts
+        </button>
+    </div>
+
+    <!-- ================= SR TABLE ================= -->
+    <div id="srTable">
+        <table class="table table-bordered table-striped table-sm" data-sort="">
+            <thead class="table-dark">
+                <tr>
+                    <th onclick="sortTable('sr',0)">#</th>
+                    <th onclick="sortTable('sr',1)">Ticker</th>
+                    <th onclick="sortTable('sr',2)">Support</th>
+                    <th onclick="sortTable('sr',3)">Resistance</th>
+                    <th onclick="sortTable('sr',4)">Support Time</th>
+                    <th onclick="sortTable('sr',5)">Resistance Time</th>
+                    <th onclick="sortTable('sr',6)">Alert Time</th>
+                </tr>
+            </thead>
+            <tbody id="sr">
+                {% for r in sr_data %}
+                <tr>
+                    <td>{{ r.serial }}</td>
+                    <td>{{ r.ticker }}</td>
+                    <td>{{ r.support }}</td>
+                    <td>{{ r.resistance }}</td>
+                    <td>{{ r.support_time }}</td>
+                    <td>{{ r.resistance_time }}</td>
+                    <td>{{ r.alert_time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ================= RAW TABLE ================= -->
+    <div id="rawTable" style="display:none">
+        <table class="table table-bordered table-striped table-sm" data-sort="">
+            <thead class="table-dark">
+                <tr>
+                    <th onclick="sortTable('raw',0)">#</th>
+                    <th onclick="sortTable('raw',1)">Received At</th>
+                    <th>Payload</th>
+                </tr>
+            </thead>
+            <tbody id="raw">
+                {% for r in raw_data %}
+                <tr>
+                    <td>{{ r.serial }}</td>
+                    <td>{{ r._received_at }}</td>
+                    <td>
+                        <pre style="white-space: pre-wrap; max-width:600px;">
+{{ r.payload }}
+                        </pre>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
