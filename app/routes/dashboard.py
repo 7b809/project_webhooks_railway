@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.db.mongo import sr_collection, raw_collection
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
