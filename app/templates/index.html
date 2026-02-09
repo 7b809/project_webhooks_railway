@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Webhook Dashboard</title>
 
     <!-- Bootstrap -->
-    <link href="https://.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Base favicon (will be replaced dynamically with badge) -->
-    <link id="dynamicFavicon>
-        th.sortable { cursor: pointer; }
+    <style>
+        th.sortable {
+            cursor: pointer;
+        }
         th.sort-asc {
             background-color: #198754 !important; /* green */
             color: white;
@@ -20,7 +21,56 @@
         }
     </style>
 
-    
+    <script>
+        function sortTable(tbodyId, colIndex, thEl) {
+            const tbody = document.getElementById(tbodyId);
+            const table = tbody.closest("table");
+            const rows = Array.from(tbody.rows);
+
+            // Clear previous header styles
+            table.querySelectorAll("th").forEach(th => {
+                th.classList.remove("sort-asc", "sort-desc");
+            });
+
+            // Toggle direction per column
+            const key = tbodyId + "_" + colIndex;
+            const asc = table.dataset[key] !== "asc";
+
+            rows.sort((a, b) => {
+                let x = a.cells[colIndex].innerText.trim();
+                let y = b.cells[colIndex].innerText.trim();
+
+                // Serial number
+                if (!isNaN(x) && !isNaN(y)) {
+                    return asc ? x - y : y - x;
+                }
+
+                // ISO timestamp
+                const dx = Date.parse(x);
+                const dy = Date.parse(y);
+                if (!isNaN(dx) && !isNaN(dy)) {
+                    return asc ? dx - dy : dy - dx;
+                }
+
+                // Fallback string
+                return asc ? x.localeCompare(y) : y.localeCompare(x);
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+
+            // Save state
+            table.dataset[key] = asc ? "asc" : "desc";
+
+            // Apply color to active column
+            thEl.classList.add(asc ? "sort-asc" : "sort-desc");
+        }
+
+        function showTable(id) {
+            document.getElementById("srTable").style.display = "none";
+            document.getElementById("rawTable").style.display = "none";
+            document.getElementById(id).style.display = "block";
+        }
+    </script>
 </head>
 
 <body class="bg-light">
@@ -30,10 +80,10 @@
 
     <!-- Buttons -->
     <div class="mb-3">
-        <button id="btnSr" class="btn btn-success me-2" onclick="showTable('srTable')">
-            Support &amp; Resistance
+        <button class="btn btn-success me-2" onclick="showTable('srTable')">
+            Support & Resistance
         </button>
-        <button id="btnRaw" class="btn btn-secondary" onclick="showTable('rawTable')">
+        <button class="btn btn-secondary" onclick="showTable('rawTable')">
             Raw Alerts
         </button>
     </div>
@@ -84,7 +134,9 @@
                     <td>{{ r.serial }}</td>
                     <td>{{ r._received_at }}</td>
                     <td>
-                        <pre style="white-space: pre-wrap; max-width:600px;">{{ r.payload }}</pre>
+                        <pre style="white-space: pre-wrap; max-width:600px;">
+{{ r.payload }}
+                        </pre>
                     </td>
                 </tr>
                 {% endfor %}
@@ -93,203 +145,5 @@
     </div>
 
 </div>
-<script>
-        // =========================
-        // TABLE SORT (your existing)
-        // =========================
-        function sortTable(tbodyId, colIndex, thEl) {
-            const tbody = document.getElementById(tbodyId);
-            const table = tbody.closest("table");
-            const rows = Array.from(tbody.rows);
-
-            // Clear previous header styles
-            table.querySelectorAll("th").forEach(th => {
-                th.classList.remove("sort-asc", "sort-desc");
-            });
-
-            // Toggle direction per column
-            const key = tbodyId + "_" + colIndex;
-            const asc = table.dataset[key] !== "asc";
-
-            rows.sort((a, b) => {
-                let x = a.cells[colIndex].innerText.trim();
-                let y = b.cells[colIndex].innerText.trim();
-
-                // Serial number
-                if (!isNaN(x) && !isNaN(y)) {
-                    return asc ? x - y : y - x;
-                }
-
-                // ISO timestamp
-                const dx = Date.parse(x);
-                const dy = Date.parse(y);
-                if (!isNaN(dx) && !isNaN(dy)) {
-                    return asc ? dx - dy : dy - dx;
-                }
-
-                // Fallback string
-                return asc ? x.localeCompare(y) : y.localeCompare(x);
-            });
-
-            rows.forEach(r => tbody.appendChild(r));
-
-            // Save state
-            table.dataset[key] = asc ? "asc" : "desc";
-
-            // Apply color to active column
-            thEl.classList.add(asc ? "sort-asc" : "sort-desc");
-        }
-
-        // =========================
-        // TAB SWITCH (modified)
-        // =========================
-        function showTable(id) {
-            document.getElementById("srTable").style.display = "none";
-            document.getElementById("rawTable").style.display = "none";
-            document.getElementById(id).style.display = "block";
-
-            // When user visits a tab, mark it as seen and reset that tab's "new" count
-            markSeenForTab(id);
-        }
-
-        // =========================
-        // NOTIFICATION BADGE (NO BACKEND)
-        // Works from what is already rendered in HTML.
-        // If page doesn't refresh, it won't see new alerts unless you refresh.
-        // =========================
-        const APP_TITLE = "Webhook Dashboard";
-
-        function drawFaviconBadge(count) {
-            const size = 64;
-            const canvas = document.createElement("canvas");
-            canvas.width = size;
-            canvas.height = size;
-
-            const ctx = canvas.getContext("2d");
-
-            // Base icon background (simple circle)
-            ctx.fillStyle = "#0d6efd";
-            ctx.beginPath();
-            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // If no badge needed
-            if (!count || count <= 0) return canvas.toDataURL("image/png");
-
-            // Badge circle
-            ctx.fillStyle = "#dc3545"; // red
-            ctx.beginPath();
-            ctx.arc(size * 0.75, size * 0.25, size * 0.22, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Badge text
-            ctx.fillStyle = "white";
-            ctx.font = "bold 24px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            const text = count > 99 ? "99+" : String(count);
-            ctx.fillText(text, size * 0.75, size * 0.25);
-
-            return canvas.toDataURL("image/png");
-        }
-
-        function setFaviconWithBadge(totalCount) {
-            const link = document.getElementById("dynamicFavicon");
-            if (link) link.href = drawFaviconBadge(totalCount);
-        }
-
-        function setTitleWithBadge(totalCount) {
-            document.title = totalCount > 0 ? `(${totalCount}) ${APP_TITLE}` : APP_TITLE;
-        }
-
-        function getMaxSerial(tbodyId) {
-            const tbody = document.getElementById(tbodyId);
-            if (!tbody) return 0;
-
-            let max = 0;
-            Array.from(tbody.querySelectorAll("tr")).forEach(tr => {
-                const firstCell = tr.querySelector("td");
-                if (!firstCell) return;
-                const n = parseInt(firstCell.innerText.trim(), 10);
-                if (!isNaN(n)) max = Math.max(max, n);
-            });
-
-            return max;
-        }
-
-        function getSeen(key) {
-            return parseInt(localStorage.getItem(key) || "0", 10);
-        }
-
-        function setSeen(key, value) {
-            localStorage.setItem(key, String(value));
-        }
-
-        function updateButtonBadges(newSr, newRaw) {
-            const srBtn = document.getElementById("btnSr");
-            const rawBtn = document.getElementById("btnRaw");
-
-            if (srBtn) srBtn.querySelector(".badge")?.remove();
-            if (rawBtn) rawBtn.querySelector(".badge")?.remove();
-
-            if (srBtn && newSr > 0) {
-                srBtn.insertAdjacentHTML("beforeend", ` <span class="badge bg-danger">${newSr}</span>`);
-            }
-            if (rawBtn && newRaw > 0) {
-                rawBtn.insertAdjacentHTML("beforeend", ` <span class="badge bg-danger">${newRaw}</span>`);
-            }
-        }
-
-        function updateBadgesFromRenderedRows() {
-            // Current max serial from DOM
-            const maxSr = getMaxSerial("sr");
-            const maxRaw = getMaxSerial("raw");
-
-            // Seen max stored in localStorage
-            const seenSr = getSeen("seen_sr_serial");
-            const seenRaw = getSeen("seen_raw_serial");
-
-            // New counts (never negative)
-            const newSr = Math.max(0, maxSr - seenSr);
-            const newRaw = Math.max(0, maxRaw - seenRaw);
-
-            const total = newSr + newRaw;
-
-            setTitleWithBadge(total);
-            setFaviconWithBadge(total);
-            updateButtonBadges(newSr, newRaw);
-        }
-
-        function markSeenForTab(tabId) {
-            if (tabId === "srTable") {
-                const maxSr = getMaxSerial("sr");
-                setSeen("seen_sr_serial", maxSr);
-            }
-            if (tabId === "rawTable") {
-                const maxRaw = getMaxSerial("raw");
-                setSeen("seen_raw_serial", maxRaw);
-            }
-            updateBadgesFromRenderedRows();
-        }
-
-        // On load:
-        // - If user is loading for first time, set seen to current max so it won't show old as "new"
-        // - Then update badges
-        window.addEventListener("load", () => {
-            const maxSr = getMaxSerial("sr");
-            const maxRaw = getMaxSerial("raw");
-
-            // Initialize seen values if not present
-            if (localStorage.getItem("seen_sr_serial") === null) setSeen("seen_sr_serial", maxSr);
-            if (localStorage.getItem("seen_raw_serial") === null) setSeen("seen_raw_serial", maxRaw);
-
-            updateBadgesFromRenderedRows();
-        });
-
-        // When user returns to the browser tab, refresh badge (useful if page was refreshed in another tab)
-        document.addEventListener("visibilitychange", () => {
-            if (!document.hidden) updateBadgesFromRenderedRows();
-        });
-    </script>
 </body>
 </html>
