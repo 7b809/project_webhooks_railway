@@ -19,35 +19,6 @@
             background-color: #0d6efd !important; /* blue */
             color: white;
         }
-
-        /* ===== Payload styling (NEW) ===== */
-        .payload-box {
-            font-size: 13px;
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 6px;
-            max-width: 600px;
-        }
-
-        .payload-row {
-            display: flex;
-            margin-bottom: 4px;
-        }
-
-        .payload-key {
-            font-weight: 600;
-            width: 120px;
-            color: #0d6efd;
-        }
-
-        .payload-value {
-            flex: 1;
-            word-break: break-word;
-        }
-
-        .badge-action { background: #dc3545; }
-        .badge-symbol { background: #198754; }
-        .badge-tag { background: #6f42c1; }
     </style>
 
     <script>
@@ -56,10 +27,12 @@
             const table = tbody.closest("table");
             const rows = Array.from(tbody.rows);
 
+            // Clear previous header styles
             table.querySelectorAll("th").forEach(th => {
                 th.classList.remove("sort-asc", "sort-desc");
             });
 
+            // Toggle direction per column
             const key = tbodyId + "_" + colIndex;
             const asc = table.dataset[key] !== "asc";
 
@@ -67,21 +40,28 @@
                 let x = a.cells[colIndex].innerText.trim();
                 let y = b.cells[colIndex].innerText.trim();
 
+                // Serial number
                 if (!isNaN(x) && !isNaN(y)) {
                     return asc ? x - y : y - x;
                 }
 
+                // ISO timestamp
                 const dx = Date.parse(x);
                 const dy = Date.parse(y);
                 if (!isNaN(dx) && !isNaN(dy)) {
                     return asc ? dx - dy : dy - dx;
                 }
 
+                // Fallback string
                 return asc ? x.localeCompare(y) : y.localeCompare(x);
             });
 
             rows.forEach(r => tbody.appendChild(r));
+
+            // Save state
             table.dataset[key] = asc ? "asc" : "desc";
+
+            // Apply color to active column
             thEl.classList.add(asc ? "sort-asc" : "sort-desc");
         }
 
@@ -90,44 +70,6 @@
             document.getElementById("rawTable").style.display = "none";
             document.getElementById(id).style.display = "block";
         }
-
-        /* ===== Payload renderer (NEW) ===== */
-        document.addEventListener("DOMContentLoaded", () => {
-            document.querySelectorAll(".payload-box").forEach(box => {
-                let data;
-                try {
-                    data = JSON.parse(box.dataset.payload);
-                } catch {
-                    box.innerText = box.dataset.payload;
-                    return;
-                }
-
-                for (const [key, value] of Object.entries(data)) {
-                    const row = document.createElement("div");
-                    row.className = "payload-row";
-
-                    const k = document.createElement("div");
-                    k.className = "payload-key";
-                    k.innerText = key;
-
-                    const v = document.createElement("div");
-                    v.className = "payload-value";
-
-                    if (["action", "symbol", "tag"].includes(key)) {
-                        const badge = document.createElement("span");
-                        badge.className = "badge me-1 badge-" + key;
-                        badge.innerText = value;
-                        v.appendChild(badge);
-                    } else {
-                        v.innerText = value ?? "—";
-                    }
-
-                    row.appendChild(k);
-                    row.appendChild(v);
-                    box.appendChild(row);
-                }
-            });
-        });
     </script>
 </head>
 
@@ -136,6 +78,7 @@
 
     <h2 class="mb-4">📊 Webhook Dashboard</h2>
 
+    <!-- Buttons -->
     <div class="mb-3">
         <button class="btn btn-success me-2" onclick="showTable('srTable')">
             Support & Resistance
@@ -191,9 +134,9 @@
                     <td>{{ r.serial }}</td>
                     <td>{{ r._received_at }}</td>
                     <td>
-                        <div class="payload-box"
-                             data-payload='{{ r.payload | tojson | safe }}'>
-                        </div>
+                        <pre style="white-space: pre-wrap; max-width:600px;">
+{{ r.payload }}
+                        </pre>
                     </td>
                 </tr>
                 {% endfor %}
