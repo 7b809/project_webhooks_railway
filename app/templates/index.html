@@ -140,6 +140,14 @@
         </table>
     </div>
 </div>
+
+{% elif request.query_params.get('start_time') %}
+<div class="alert alert-warning">
+    No levels created in selected time range.
+</div>
+{% endif %}
+<!-- ================= END FILTER ================= -->
+
 {% endif %}
 
     {% elif request.query_params.get('start_time') %}
