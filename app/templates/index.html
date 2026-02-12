@@ -35,76 +35,113 @@
 
             <form method="get" class="row g-3 align-items-center">
 
-                <div class="col-auto">
-                    <label class="form-label">Start Time</label>
-                    <input type="time" name="start_time" class="form-control"
-                           value="{{ request.query_params.get('start_time','') }}">
-                </div>
+    <div class="col-auto">
+        <label class="form-label">Start Time</label>
+        <input type="time"
+               name="start_time"
+               class="form-control"
+               value="{{ request.query_params.get('start_time', '12:00') }}">
+    </div>
 
-                <div class="col-auto">
-                    <label class="form-label">End Time</label>
-                    <input type="time" name="end_time" class="form-control"
-                           value="{{ request.query_params.get('end_time','') }}">
-                </div>
+    <div class="col-auto">
+        <label class="form-label">End Time</label>
+        <input type="time"
+               name="end_time"
+               class="form-control"
+               value="{{ request.query_params.get('end_time', '15:00') }}">
+    </div>
 
-                <div class="col-auto mt-4">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input"
-                               type="radio"
-                               name="level_type"
-                               value="SUPPORT_CREATED"
-                               {% if request.query_params.get('level_type') == 'SUPPORT_CREATED' %}checked{% endif %}>
-                        <label class="form-check-label">Support Only</label>
-                    </div>
+    <div class="col-auto mt-4">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input"
+                   type="radio"
+                   name="level_type"
+                   value="SUPPORT_CREATED"
+                   {% if request.query_params.get('level_type', 'SUPPORT_CREATED') == 'SUPPORT_CREATED' %}checked{% endif %}>
+            <label class="form-check-label">Support Only</label>
+        </div>
 
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input"
-                               type="radio"
-                               name="level_type"
-                               value="RESISTANCE_CREATED"
-                               {% if request.query_params.get('level_type') == 'RESISTANCE_CREATED' %}checked{% endif %}>
-                        <label class="form-check-label">Resistance Only</label>
-                    </div>
-                </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input"
+                   type="radio"
+                   name="level_type"
+                   value="RESISTANCE_CREATED"
+                   {% if request.query_params.get('level_type') == 'RESISTANCE_CREATED' %}checked{% endif %}>
+            <label class="form-check-label">Resistance Only</label>
+        </div>
+    </div>
 
-                <div class="col-auto mt-4">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
+    <div class="col-auto mt-4">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
 
-            </form>
+</form>
+
 
         </div>
     </div>
 
-    <!-- ================= FILTERED RESULT TABLE ================= -->
-    {% if filtered_levels %}
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">
-            Filtered Result (Latest per Ticker in Selected Range)
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-bordered table-striped table-sm mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Created At</th>
-                        <th>Pivot ID</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in filtered_levels %}
-                    <tr>
-                        <td>{{ item.ticker }}</td>
-                        <td>{{ item.price }}</td>
-                        <td>{{ item.created_at }}</td>
-                        <td>{{ item.pivot_id }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<!-- ================= FILTERED RESULT TABLE ================= -->
+{% if filtered_levels %}
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        Filtered Result (Latest per Ticker in Selected Range)
     </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped table-sm mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Ticker</th>
+                    <th>Price</th>
+                    <th>Created At</th>
+                    <th>Pivot Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in filtered_levels %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.ticker }}</td>
+                    <td>{{ item.price }}</td>
+                    <td>{{ item.created_at }}</td>
+                    <td>
+                        <div style="font-size:13px; line-height:1.5">
+
+                            <strong>Pivot ID:</strong> {{ item.pivot_id }} <br>
+
+                            <strong>Bar Index:</strong> {{ item.payload.bar_index }} <br>
+
+                            <strong>Timeframe:</strong> {{ item.payload.timeframe }} <br>
+
+                            {% if item.payload.last_resistance_price %}
+                                <strong>Last Resistance:</strong>
+                                {{ item.payload.last_resistance_price }}
+                                ({{ item.payload.last_resistance_time }}) <br>
+                            {% endif %}
+
+                            {% if item.payload.last_support_price %}
+                                <strong>Last Support:</strong>
+                                {{ item.payload.last_support_price }}
+                                ({{ item.payload.last_support_time }}) <br>
+                            {% endif %}
+
+                            {% if item.payload.chart %}
+                                <a href="{{ item.payload.chart }}" target="_blank">
+                                    View Chart
+                                </a>
+                            {% endif %}
+
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
     {% elif request.query_params.get('start_time') %}
     <div class="alert alert-warning">
         No levels created in selected time range.

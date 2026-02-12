@@ -11,29 +11,42 @@ router = APIRouter()
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(
     request: Request,
-    start_time: str = Query(None),   # "12:00"
-    end_time: str = Query(None),     # "15:10"
-    level_type: str = Query(None)    # "SUPPORT_CREATED" or "RESISTANCE_CREATED"
+    start_time: str = Query("12:00"),
+    end_time: str = Query("15:00"),
+    level_type: str = Query("SUPPORT_CREATED")
+
 ):
     filtered_levels = []
+
+    # 🔥 TODAY RANGE (UTC)
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    today_start_iso = today_start.isoformat()
+    today_end_iso = today_end.isoformat()
 
     if start_time and end_time and level_type:
 
         start = datetime.strptime(start_time, "%H:%M").time()
         end = datetime.strptime(end_time, "%H:%M").time()
 
-        raw_data = list(raw_collection.find().sort("_received_at", -1))
+        # 🔥 FILTER ONLY TODAY DOCS FROM MONGO
+        raw_data = list(
+            raw_collection.find({
+                "_received_at": {
+                    "$gte": today_start_iso,
+                    "$lte": today_end_iso
+                },
+                "payload.type": level_type
+            }).sort("_received_at", -1)
+        )
 
         ticker_map = {}
 
         for row in raw_data:
             payload = row.get("payload", {})
-            event_type = payload.get("type")
-
-            if event_type != level_type:
-                continue
-
             time_str = payload.get("time_ist")
+
             if not time_str:
                 continue
 
@@ -42,20 +55,30 @@ async def dashboard(
             if start <= event_time <= end:
                 ticker = payload.get("ticker")
 
-                # Because sorted descending, first match = latest
                 if ticker not in ticker_map:
                     ticker_map[ticker] = {
                         "ticker": ticker,
                         "price": payload.get("price"),
                         "created_at": time_str,
                         "pivot_id": payload.get("pivot_id"),
+                        "payload": payload  # FULL OBJECT
                     }
+
 
         filtered_levels = list(ticker_map.values())
 
-    # Default SR table
+    # Default SR table (unchanged)
     sr_data = list(sr_collection.find().sort("alert_time", -1).limit(200))
-    raw_data = list(raw_collection.find().sort("_received_at", -1).limit(200))
+
+    # 🔥 RAW TABLE ALSO TODAY ONLY
+    raw_data = list(
+        raw_collection.find({
+            "_received_at": {
+                "$gte": today_start_iso,
+                "$lte": today_end_iso
+            }
+        }).sort("_received_at", -1).limit(200)
+    )
 
     for i, row in enumerate(sr_data, start=1):
         row["serial"] = i
