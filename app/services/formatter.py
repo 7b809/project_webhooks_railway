@@ -1,3 +1,14 @@
+def format_trade_alert(data: dict) -> str:
+    return f"""
+🚀 <b>TRADE SIGNAL</b>
+
+<b>Type:</b> {data.get("type")}
+<b>Symbol:</b> {data.get("ticker")}
+<b>Price:</b> {data.get("price")}
+
+⏰ {data.get("alert_time")}
+""".strip()
+
 def format_sr_alert(data: dict) -> str:
     flag = "🟢 SUPPORT UPDATED" if data["support_flag"] == 1 else "🔴 RESISTANCE UPDATED"
 

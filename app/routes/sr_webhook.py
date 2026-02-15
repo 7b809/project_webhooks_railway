@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Request, HTTPException
 from datetime import datetime
 from app.db.mongo import sr_collection
-from app.services.telegram import send_telegram
-from app.services.formatter import format_sr_alert
+from app.services.telegram import send_telegram, send_trade_telegram
+from app.services.formatter import format_sr_alert, format_trade_alert
 import json
 import os
 
 router = APIRouter()
 
 FILTER_FILE = "filter_tags.json"
+
 
 def load_filters():
     if not os.path.exists(FILTER_FILE):
@@ -17,6 +18,7 @@ def load_filters():
     with open(FILTER_FILE, "r") as f:
         return json.load(f)
 
+
 @router.post("/webhook/sr")
 async def sr_webhook(request: Request):
     try:
@@ -24,52 +26,67 @@ async def sr_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    required = [
-        "support_flag", "resistance_flag",
-        "Support", "Resistance",
-        "SupportTime", "ResistanceTime"
-    ]
+    alert_type = data.get("type")
 
-    for key in required:
-        if key not in data:
-            raise HTTPException(status_code=400, detail=f"Missing {key}")
+    if not alert_type:
+        raise HTTPException(status_code=400, detail="Missing type")
 
+    # ==============================
+    # BUILD DOCUMENT
+    # ==============================
     document = {
         "ticker": data.get("ticker", "UNKNOWN"),
         "timeframe": data.get("timeframe", "-"),
-        "support_flag": data["support_flag"],
-        "resistance_flag": data["resistance_flag"],
-        "support": data["Support"],
-        "resistance": data["Resistance"],
-        "support_time": data["SupportTime"],
-        "resistance_time": data["ResistanceTime"],
+        "type": alert_type,
+        "price": data.get("price"),
+        "support": data.get("support"),
+        "resistance": data.get("resistance"),
+        "support_time": data.get("SupportTime"),
+        "resistance_time": data.get("ResistanceTime"),
         "alert_time": datetime.utcnow(),
         "raw": data
     }
 
-    # 💾 Save to MongoDB (Always Save)
+    # ==============================
+    # SAVE TO MONGO (ALWAYS SAVE)
+    # ==============================
     sr_collection.insert_one(document)
 
-    # 🔍 Load Filters
     filters = load_filters()
 
-    send_support = (
-        data["support_flag"] is True and 
-        filters.get("support_flag", False) is True
-    )
+    # ==============================
+    # STRUCTURE ALERTS
+    # ==============================
+    if alert_type in ["SUPPORT_CREATED", "RESISTANCE_CREATED"]:
 
-    send_resistance = (
-        data["resistance_flag"] is True and 
-        filters.get("resistance_flag", False) is True
-    )
-
-    # 📩 Send Only Allowed Alerts
-    if send_support or send_resistance:
-        message = format_sr_alert(
-            document,
-            send_support=send_support,
-            send_resistance=send_resistance
+        send_support = (
+            alert_type == "SUPPORT_CREATED"
+            and filters.get("support_flag", False)
         )
-        send_telegram(message)
 
-    return {"status": "saved_and_filtered"}
+        send_resistance = (
+            alert_type == "RESISTANCE_CREATED"
+            and filters.get("resistance_flag", False)
+        )
+
+        if send_support or send_resistance:
+            message = format_sr_alert(document)
+            send_telegram(message)
+
+    # ==============================
+    # TRADE ALERTS (BUY SIGNALS)
+    # ==============================
+    elif alert_type in ["BUY_SUPPORT_CONFIRMED", "BUY_RETEST_SUPPORT"]:
+
+        message = format_trade_alert(document)
+
+        # Send to TRADE BOT (NOT normal bot)
+        send_trade_telegram(message)
+
+    # ==============================
+    # UNKNOWN TYPE (SAFE FALLBACK)
+    # ==============================
+    else:
+        print(f"⚠️ Unknown alert type received: {alert_type}")
+
+    return {"status": "saved_and_processed"}
