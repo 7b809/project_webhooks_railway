@@ -3,8 +3,19 @@ from datetime import datetime
 from app.db.mongo import sr_collection
 from app.services.telegram import send_telegram
 from app.services.formatter import format_sr_alert
+import json
+import os
 
 router = APIRouter()
+
+FILTER_FILE = "filter_tags.json"
+
+def load_filters():
+    if not os.path.exists(FILTER_FILE):
+        return {"support_flag": True, "resistance_flag": True}
+    
+    with open(FILTER_FILE, "r") as f:
+        return json.load(f)
 
 @router.post("/webhook/sr")
 async def sr_webhook(request: Request):
@@ -36,11 +47,29 @@ async def sr_webhook(request: Request):
         "raw": data
     }
 
-    # 💾 Save to MongoDB
+    # 💾 Save to MongoDB (Always Save)
     sr_collection.insert_one(document)
 
-    # 📩 Telegram
-    message = format_sr_alert(document)
-    send_telegram(message)
+    # 🔍 Load Filters
+    filters = load_filters()
 
-    return {"status": "saved_and_sent"}
+    send_support = (
+        data["support_flag"] is True and 
+        filters.get("support_flag", False) is True
+    )
+
+    send_resistance = (
+        data["resistance_flag"] is True and 
+        filters.get("resistance_flag", False) is True
+    )
+
+    # 📩 Send Only Allowed Alerts
+    if send_support or send_resistance:
+        message = format_sr_alert(
+            document,
+            send_support=send_support,
+            send_resistance=send_resistance
+        )
+        send_telegram(message)
+
+    return {"status": "saved_and_filtered"}
