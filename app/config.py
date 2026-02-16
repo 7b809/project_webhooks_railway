@@ -29,11 +29,7 @@ class Settings:
     # ==============================
     @staticmethod
     def get_env(key: str):
-        """
-        Dynamically fetch any environment variable.
-        Used for dynamic bot tokens.
-        """
-        return os.getenv(key, DEFAULT_KEY_TOKEN)
+        return os.getenv(key, Settings.DEFAULT_KEY_TOKEN)
 
     # ==============================
     # OPTIONAL: ENV VALIDATION
