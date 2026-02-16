@@ -61,18 +61,19 @@ async def dynamic_webhook(indicator_num: str, request: Request):
     # ===============================
     # SEND TELEGRAM MESSAGE
     # ===============================
-    # ✅ Correct way to resolve bot token
-    bot_token = getattr(settings, bot_token_env, None)
+
+    # ✅ Dynamic environment token resolution
+    bot_token = settings.get_env(bot_token_env)
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not bot_token:
-        print(f"❌ Bot token missing for indicator {indicator_num}")
+        print(f"❌ Bot token missing for indicator {indicator_num} ({bot_token_env})")
         return {
             "status": "saved_but_no_bot_token",
             "indicator": indicator_config.get("indicator_name")
         }
 
-    # ✅ Use universal dynamic formatter
+    # ✅ Format message dynamically
     message = format_dynamic_alert(document)
 
     success = _send_message(
