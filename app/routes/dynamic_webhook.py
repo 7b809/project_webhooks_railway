@@ -6,6 +6,9 @@ from app.services.telegram import _send_message
 from app.services.formatter import format_dynamic_alert  # ✅ dynamic formatter
 import json
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -62,6 +65,7 @@ async def dynamic_webhook(indicator_num: str, request: Request):
     # SEND TELEGRAM MESSAGE
     # ===============================
     bot_token = indicator_config.get(bot_token_env) 
+    bot_token = os.getenv(bot_token) 
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not bot_token:
