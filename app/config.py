@@ -11,6 +11,7 @@ class Settings:
     # CORE TELEGRAM SETTINGS
     # ==============================
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID")
+    DEFAULT_KEY_TOKEN = os.getenv("TELEGRAM_DEFAULT_BOT_TOKEN")
 
     # Optional default bots (if you still use them elsewhere)
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -32,7 +33,7 @@ class Settings:
         Dynamically fetch any environment variable.
         Used for dynamic bot tokens.
         """
-        return os.getenv(key)
+        return os.getenv(key, DEFAULT_KEY_TOKEN)
 
     # ==============================
     # OPTIONAL: ENV VALIDATION

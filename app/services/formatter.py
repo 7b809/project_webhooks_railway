@@ -106,7 +106,7 @@ def format_dynamic_alert(document: dict) -> str:
     else:
         lines.append(str(payload))
 
-    formatted_payload = "\n".join(lines)
+    formatted_payload = "\n\n".join(lines)
 
     return f"""
 📢 <b>{indicator_name} Alert</b>
