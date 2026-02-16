@@ -61,7 +61,7 @@ async def dynamic_webhook(indicator_num: str, request: Request):
     # ===============================
     # SEND TELEGRAM MESSAGE
     # ===============================
-    bot_token = getattr(settings, bot_token_env, None)
+    bot_token = indicator_config.get(bot_token_env) 
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not bot_token:
@@ -73,7 +73,6 @@ async def dynamic_webhook(indicator_num: str, request: Request):
 
     # ✅ Use universal dynamic formatter
     message = format_dynamic_alert(document)
-
     _send_message(
         bot_token=bot_token,
         chat_id=chat_id,
