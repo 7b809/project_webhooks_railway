@@ -72,3 +72,47 @@ def format_pure_raw_alert(data: dict) -> str:
 <b>Payload:</b>
 <pre>{data.get("payload")}</pre>
 """.strip()
+
+def format_dynamic_alert(document: dict) -> str:
+    """
+    Universal formatter for any indicator payload
+    """
+
+    indicator_name = document.get("indicator_name", "Indicator")
+    received_at = document.get("_received_at")
+    payload = document.get("payload", {})
+
+    lines = []
+
+    # If payload is dict → pretty format
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+
+            # Nested dict handling
+            if isinstance(value, dict):
+                lines.append(f"<b>{key}:</b>")
+                for sub_key, sub_val in value.items():
+                    lines.append(f"  • <b>{sub_key}:</b> {sub_val}")
+
+            # List handling
+            elif isinstance(value, list):
+                lines.append(f"<b>{key}:</b>")
+                for item in value:
+                    lines.append(f"  • {item}")
+
+            else:
+                lines.append(f"<b>{key}:</b> {value}")
+
+    else:
+        lines.append(str(payload))
+
+    formatted_payload = "\n".join(lines)
+
+    return f"""
+📢 <b>{indicator_name} Alert</b>
+
+<b>Received At:</b> {received_at}
+
+<b>Payload Details:</b>
+{formatted_payload}
+""".strip()

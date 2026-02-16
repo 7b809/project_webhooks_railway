@@ -1,0 +1,17 @@
+{
+  "1": {
+    "indicator_name": "Support & Resistance",
+    "collection": "sr_alerts",
+    "bot_token_env": "TELEGRAM_BOT_TOKEN"
+  },
+  "2": {
+    "indicator_name": "Raw Buy Signals",
+    "collection": "raw_alerts",
+    "bot_token_env": "TRADE_TELEGRAM_BOT_TOKEN"
+  },
+  "3": {
+    "indicator_name": "Scalping Indicator",
+    "collection": "scalp_alerts",
+    "bot_token_env": "SCALP_TELEGRAM_BOT_TOKEN"
+  }
+}
