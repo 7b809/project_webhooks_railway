@@ -1,7 +1,12 @@
 {
   "1": {
-    "indicator_name": "Support & Resistance",
-    "collection": "sr_alerts",
-    "bot_token_env": "TELEGRAM_S_R_CONFIRMED_BOT_TOKEN"
-  }
+    "indicator_name": "Support",
+    "collection": "s_alerts",
+    "bot_token_env": "TELEGRAM_S_CONFIRMED_BOT_TOKEN"
+  },
+  "2": {
+    "indicator_name": "Resistance",
+    "collection": "r_alerts",
+    "bot_token_env": "TELEGRAM_R_CONFIRMED_BOT_TOKEN"
+  }  
 }
