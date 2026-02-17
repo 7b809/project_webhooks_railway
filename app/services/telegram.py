@@ -3,37 +3,64 @@ import requests
 from app.config import settings
 
 
-def _send_message(bot_token: str, chat_id: str, message: str, retries: int = 3, timeout: int = 5) -> bool:
-    if not bot_token or not chat_id:
-        print("❌ Telegram credentials missing")
+default_chat_id = settings.TELEGRAM_CHAT_ID
+
+
+def _send_message(bot_token: str, chat_id: str, message: str,
+                  retries: int = 3, timeout: int = 5) -> bool:
+
+    if not bot_token:
+        print("❌ Telegram bot token missing")
         return False
 
+    # Always ensure we have at least default
+    primary_chat_id = chat_id or default_chat_id
+
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "HTML"
-    }
 
-    for attempt in range(1, retries + 1):
-        try:
-            response = requests.post(url, json=payload, timeout=timeout)
+    def attempt_send(target_chat_id: str) -> bool:
+        payload = {
+            "chat_id": target_chat_id,
+            "text": message,
+            "parse_mode": "HTML"
+        }
 
-            if response.status_code == 200:
-                return True
+        for attempt in range(1, retries + 1):
+            try:
+                response = requests.post(url, json=payload, timeout=timeout)
 
-            print(
-                f"⚠️ Telegram error (attempt {attempt}): "
-                f"{response.status_code} - {response.text}"
-            )
+                if response.status_code == 200:
+                    return True
 
-        except requests.exceptions.RequestException as e:
-            print(f"⚠️ Telegram exception (attempt {attempt}): {e}")
+                print(
+                    f"⚠️ Telegram error (attempt {attempt}) "
+                    f"[chat_id={target_chat_id}]: "
+                    f"{response.status_code} - {response.text}"
+                )
 
-        time.sleep(1)
+                # If chat not found → break immediately
+                if response.status_code == 400 and "chat not found" in response.text:
+                    return False
 
-    print("❌ Telegram message failed after retries")
-    return False
+            except requests.exceptions.RequestException as e:
+                print(f"⚠️ Telegram exception (attempt {attempt}): {e}")
+
+            time.sleep(1)
+
+        return False
+
+    # 🔹 First attempt → primary chat
+    success = attempt_send(primary_chat_id)
+
+    # 🔹 If failed and not already using default → fallback
+    if not success and primary_chat_id != default_chat_id:
+        print("🔁 Falling back to default chat ID...")
+        success = attempt_send(default_chat_id)
+
+    if not success:
+        print("❌ Telegram message failed after retries")
+
+    return success
 
 
 # ==============================
