@@ -20,8 +20,8 @@ def load_indicator_map():
         return json.load(f)
 
 
-@router.post("/webhook/{indicator_num}")
-async def dynamic_webhook(indicator_num: str, request: Request):
+@router.post("/webhook")
+async def dynamic_webhook(request: Request):
 
     # ===============================
     # PARSE JSON
@@ -30,6 +30,14 @@ async def dynamic_webhook(indicator_num: str, request: Request):
         payload = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # ===============================
+    # EXTRACT INDICATOR NUMBER FROM PAYLOAD
+    # ===============================
+    indicator_num = payload.get("num")
+
+    if not indicator_num:
+        raise HTTPException(status_code=400, detail="Missing 'num' in payload")
 
     # ===============================
     # LOAD INDICATOR MAP
@@ -61,19 +69,16 @@ async def dynamic_webhook(indicator_num: str, request: Request):
     # ===============================
     # SEND TELEGRAM MESSAGE
     # ===============================
-
-    # ✅ Dynamic environment token resolution
     bot_token = settings.get_env(bot_token_env)
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not bot_token:
-        print(f"❌ Bot token missing for indicator {indicator_num} ({bot_token_env})")
+        print(f"❌ Bot token missing for indicator {indicator_num}")
         return {
             "status": "saved_but_no_bot_token",
             "indicator": indicator_config.get("indicator_name")
         }
 
-    # ✅ Format message dynamically
     message = format_dynamic_alert(document)
 
     success = _send_message(
@@ -83,7 +88,6 @@ async def dynamic_webhook(indicator_num: str, request: Request):
     )
 
     if not success:
-        print("❌ Telegram sending failed")
         raise HTTPException(status_code=500, detail="Telegram sending failed")
 
     return {
