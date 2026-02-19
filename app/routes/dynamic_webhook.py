@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 from app.config import settings
 from app.db.mongo import db
 from app.services.telegram import _send_message
@@ -8,8 +8,6 @@ from app.services.cross_confirmation import check_cross_confirmation
 from app.services.formatter import format_cross_trade_alert
 import json
 import os
-from datetime import datetime, timezone
-
 
 router = APIRouter()
 
@@ -38,7 +36,7 @@ async def dynamic_webhook(request: Request):
     # ===============================
     # EXTRACT INDICATOR NUMBER
     # ===============================
-    indicator_num = payload.get("num",3)  # Default to "3" for cross confirmation if not provided
+    indicator_num = payload.get("num", 3)  # Default to "3" if not provided
 
     if not indicator_num:
         raise HTTPException(status_code=400, detail="Missing 'num' in payload")
@@ -61,7 +59,7 @@ async def dynamic_webhook(request: Request):
     collection = db[collection_name]
 
     document = {
-        "_received_at": datetime.now(timezone.utc),
+        "_received_at": datetime.now(timezone.utc),  # ✅ timezone-aware
         "indicator_num": indicator_num,
         "indicator_name": indicator_config.get("indicator_name", "Indicator"),
         "payload": payload
@@ -88,7 +86,7 @@ async def dynamic_webhook(request: Request):
         if not existing:
 
             breakout_doc = {
-                "_received_at": datetime.utcnow(),
+                "_received_at": datetime.now(timezone.utc),  # ✅ fixed (no utcnow)
                 "indicator_num": "3",
                 "indicator_name": breakout_config.get("indicator_name", "S - R Breakout"),
                 "payload": payload,
@@ -117,7 +115,7 @@ async def dynamic_webhook(request: Request):
             }
 
     # ===============================
-    # NORMAL ALERT (UNCHANGED)
+    # NORMAL ALERT (UNCHANGED LOGIC)
     # ===============================
     bot_token = settings.get_env(bot_token_env)
     chat_id = settings.TELEGRAM_CHAT_ID

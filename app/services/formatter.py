@@ -118,10 +118,6 @@ def format_dynamic_alert(document: dict) -> str:
 """.strip()
 
 def format_cross_trade_alert(document: dict) -> str:
-    """
-    Advanced confirmed LONG trade formatter
-    Shows CE & PE event details
-    """
 
     payload = document.get("payload", {})
     matched_payload = document.get("matched_payload", {})
@@ -131,7 +127,7 @@ def format_cross_trade_alert(document: dict) -> str:
     date = payload.get("date", "-")
     time_ist = payload.get("time_ist", "-")
 
-    # Identify which side is CE and PE
+    # Determine CE / PE sides
     if symbol.endswith("CE"):
         ce_payload = payload
         pe_payload = matched_payload
@@ -146,6 +142,9 @@ def format_cross_trade_alert(document: dict) -> str:
     pe_time = pe_payload.get("time_ist", "-")
 
     strike = symbol[-7:-2] if len(symbol) > 7 else "-"
+
+    # 🔥 TradingView Direct Symbol Link
+    tv_link = f"https://www.tradingview.com/chart/?symbol=NSE:{symbol}"
 
     return f"""
 🚀 <b>CONFIRMED LONG TRADE</b>
@@ -168,6 +167,9 @@ def format_cross_trade_alert(document: dict) -> str:
 ━━━━━━━━━━━━━━━━━━
 🔥 CE - PE Cross Confirmation
 📈 S/R Structure Break Validated
+
+🔎 <b>Manual Chart Check:</b>
+<a href="{tv_link}">Open in TradingView</a>
 
 📅 {date}
 ⏰ {time_ist}
