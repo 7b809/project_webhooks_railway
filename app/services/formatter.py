@@ -116,3 +116,60 @@ def format_dynamic_alert(document: dict) -> str:
 <b>Payload Details:</b>
 {formatted_payload}
 """.strip()
+
+def format_cross_trade_alert(document: dict) -> str:
+    """
+    Advanced confirmed LONG trade formatter
+    Shows CE & PE event details
+    """
+
+    payload = document.get("payload", {})
+    matched_payload = document.get("matched_payload", {})
+
+    symbol = payload.get("symbol", "-")
+    price = payload.get("price", "-")
+    date = payload.get("date", "-")
+    time_ist = payload.get("time_ist", "-")
+
+    # Identify which side is CE and PE
+    if symbol.endswith("CE"):
+        ce_payload = payload
+        pe_payload = matched_payload
+    else:
+        ce_payload = matched_payload
+        pe_payload = payload
+
+    ce_action = "Support Fall (S Breakdown)" if ce_payload.get("action") == 0 else "Resistance Breakout"
+    pe_action = "Support Fall (S Breakdown)" if pe_payload.get("action") == 0 else "Resistance Breakout"
+
+    ce_time = ce_payload.get("time_ist", "-")
+    pe_time = pe_payload.get("time_ist", "-")
+
+    strike = symbol[-7:-2] if len(symbol) > 7 else "-"
+
+    return f"""
+🚀 <b>CONFIRMED LONG TRADE</b>
+
+<b>Strike:</b> {strike}
+<b>Entry Option:</b> {symbol}
+<b>Entry Price:</b> {price}
+
+━━━━━━━━━━━━━━━━━━
+📊 <b>Confirmation Logic</b>
+
+🟥 CE Event:
+   • {ce_action}
+   • Time: {ce_time}
+
+🟢 PE Event:
+   • {pe_action}
+   • Time: {pe_time}
+
+━━━━━━━━━━━━━━━━━━
+🔥 CE - PE Cross Confirmation
+📈 S/R Structure Break Validated
+
+📅 {date}
+⏰ {time_ist}
+━━━━━━━━━━━━━━━━━━
+""".strip()

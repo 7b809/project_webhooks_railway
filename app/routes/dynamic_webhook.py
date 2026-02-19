@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Request, HTTPException
 from datetime import datetime
 from app.config import settings
-from app.db.mongo import db  # ✅ reuse existing mongo connection
+from app.db.mongo import db
 from app.services.telegram import _send_message
-from app.services.formatter import format_dynamic_alert  # ✅ dynamic formatter
+from app.services.formatter import format_dynamic_alert
+from app.services.cross_confirmation import check_cross_confirmation
+from app.services.formatter import format_cross_trade_alert
 import json
 import os
+from datetime import datetime, timezone
+
 
 router = APIRouter()
 
@@ -32,9 +36,9 @@ async def dynamic_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
     # ===============================
-    # EXTRACT INDICATOR NUMBER FROM PAYLOAD
+    # EXTRACT INDICATOR NUMBER
     # ===============================
-    indicator_num = payload.get("num")
+    indicator_num = payload.get("num",3)  # Default to "3" for cross confirmation if not provided
 
     if not indicator_num:
         raise HTTPException(status_code=400, detail="Missing 'num' in payload")
@@ -46,19 +50,18 @@ async def dynamic_webhook(request: Request):
 
     if indicator_num not in indicator_map:
         raise HTTPException(status_code=404, detail="Invalid indicator number")
-    
-    indicator_config = indicator_map[indicator_num]
 
+    indicator_config = indicator_map[indicator_num]
     collection_name = indicator_config["collection"]
     bot_token_env = indicator_config["bot_token_env"]
 
     # ===============================
-    # SAVE TO CORRECT COLLECTION
+    # SAVE TO COLLECTION
     # ===============================
     collection = db[collection_name]
 
     document = {
-        "_received_at": datetime.utcnow().isoformat(),
+        "_received_at": datetime.now(timezone.utc),
         "indicator_num": indicator_num,
         "indicator_name": indicator_config.get("indicator_name", "Indicator"),
         "payload": payload
@@ -67,7 +70,54 @@ async def dynamic_webhook(request: Request):
     collection.insert_one(document)
 
     # ===============================
-    # SEND TELEGRAM MESSAGE
+    # CROSS CONFIRMATION CHECK
+    # ===============================
+    confirmation_data = check_cross_confirmation(payload, indicator_map)
+
+    if confirmation_data:
+
+        breakout_config = indicator_map["3"]
+        breakout_collection = db[breakout_config["collection"]]
+
+        # Prevent duplicate confirmation
+        existing = breakout_collection.find_one({
+            "payload.symbol": payload.get("symbol"),
+            "confirmation": "Cross Option Confirmed"
+        })
+
+        if not existing:
+
+            breakout_doc = {
+                "_received_at": datetime.utcnow(),
+                "indicator_num": "3",
+                "indicator_name": breakout_config.get("indicator_name", "S - R Breakout"),
+                "payload": payload,
+                "matched_payload": confirmation_data["matched_document"]["payload"],
+                "confirmation": "Cross Option Confirmed"
+            }
+
+            breakout_collection.insert_one(breakout_doc)
+
+            breakout_bot_token = settings.get_env(
+                breakout_config["bot_token_env"]
+            )
+
+            if breakout_bot_token:
+                final_message = format_cross_trade_alert(breakout_doc)
+
+                _send_message(
+                    bot_token=breakout_bot_token,
+                    chat_id=settings.TELEGRAM_CHAT_ID,
+                    message=final_message
+                )
+
+            return {
+                "status": "cross_confirmed_sent",
+                "indicator": breakout_config.get("indicator_name")
+            }
+
+    # ===============================
+    # NORMAL ALERT (UNCHANGED)
     # ===============================
     bot_token = settings.get_env(bot_token_env)
     chat_id = settings.TELEGRAM_CHAT_ID
