@@ -46,7 +46,7 @@ async def dynamic_webhook(request: Request):
 
     if indicator_num not in indicator_map:
         raise HTTPException(status_code=404, detail="Invalid indicator number")
-
+    
     indicator_config = indicator_map[indicator_num]
 
     collection_name = indicator_config["collection"]

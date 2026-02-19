@@ -8,5 +8,10 @@
     "indicator_name": "Resistance",
     "collection": "r_alerts",
     "bot_token_env": "TELEGRAM_R_CONFIRMED_BOT_TOKEN"
+  }  ,
+    "3": {
+    "indicator_name": "S - R Breakout",
+    "collection": "Brekout_alerts",
+    "bot_token_env": "TELEGRAM_BREAKOUT_BOT_TOKEN"
   }  
 }
