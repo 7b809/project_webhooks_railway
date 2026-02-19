@@ -1,4 +1,9 @@
 {
+    "0": {
+    "indicator_name": "default",
+    "collection": "default_alerts",
+    "bot_token_env": "TELEGRAM_DEFAULT_BOT_TOKEN"
+  },
   "1": {
     "indicator_name": "Support",
     "collection": "s_alerts",
