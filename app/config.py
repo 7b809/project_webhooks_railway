@@ -30,7 +30,7 @@ class Settings:
     @staticmethod
     def get_env(key: str):
         return os.getenv(key, Settings.DEFAULT_KEY_TOKEN)
-
+ 
     # ==============================
     # OPTIONAL: ENV VALIDATION
     # ==============================
